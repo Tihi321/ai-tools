@@ -21,7 +21,7 @@ export const App = () => {
   onMount(() => {
     const initialTool = getURLParams("tool");
     setSelectedTool(initialTool || "llm-api-prompter");
-    document.title = `Web Tools - ${startCase(
+    document.title = `AI Tools - ${startCase(
       replace(initialTool || "llm-api-prompter", "-", " ")
     )}`;
   });
