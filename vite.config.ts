@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
+import dts from "vite-plugin-dts";
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [solid()],
+  plugins: [solid(), dts()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

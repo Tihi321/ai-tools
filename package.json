@@ -10,6 +10,8 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@srsholmes/solid-code-input": "^0.0.18",
+    "prismjs": "^1.28.0",
     "@suid/icons-material": "^0.7.0",
     "@suid/material": "^0.16.0",
     "lodash": "^4.17.21",
@@ -18,11 +20,13 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/prismjs": "1.26.0",
     "@types/lodash": "^4.14.201",
     "@types/node": "^20.14.9",
     "@types/uuid": "^9.0.7",
     "typescript": "^5.5.3",
     "vite": "^5.3.1",
-    "vite-plugin-solid": "^2.10.2"
+    "vite-plugin-solid": "^2.10.2",
+    "vite-plugin-dts": "2.0.2"
   }
 }

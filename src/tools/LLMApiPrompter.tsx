@@ -19,7 +19,7 @@ import DragIndicatorIcon from "@suid/icons-material/DragIndicator";
 import ContentCopyIcon from "@suid/icons-material/ContentCopy";
 import { Accordion } from "../components/containers/Accordion";
 import { Snackbar } from "../components/toasts/Snackbar";
-import { Highlight } from "../components/code/CodeHightlighter";
+import { CodeEditor } from "../components/code/CodeEditor";
 
 interface ParamOption {
   value: string;
@@ -658,9 +658,9 @@ export const LLMApiPrompter = () => {
             <Typography variant="subtitle1" sx={{ mb: 1 }}>
               Callback Function
             </Typography>
-            <Highlight
-              value={prompts[activePrompt()]?.callback || ""}
+            <CodeEditor
               onChange={(value: any) => updatePromptCallback(prompts[activePrompt()].id, value)}
+              value={prompts[activePrompt()]?.callback || ""}
             />
             <Box sx={{ display: "flex", gap: 2, mb: 2, mt: 2 }}>
               <Button variant="contained" onClick={executeCallback}>
