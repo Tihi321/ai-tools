@@ -1,6 +1,6 @@
 import { createSignal, JSX } from "solid-js";
 import { styled } from "solid-styled-components";
-import { Paper, Typography, IconButton } from "@suid/material";
+import { IconButton } from "@suid/material";
 import ExpandMoreIcon from "@suid/icons-material/ExpandMore";
 
 interface AccordionProps {
@@ -9,20 +9,15 @@ interface AccordionProps {
   children: JSX.Element;
 }
 
-const AccordionWrapper = styled(Paper)`
-  margin-bottom: 16px;
-`;
-
 const AccordionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
   cursor: pointer;
 `;
 
 const AccordionContent = styled.div`
-  padding: 8px 16px;
+  padding-top: 8px;
 `;
 
 const ExpandIcon = styled(IconButton)<{ isOpen: boolean }>`
@@ -38,14 +33,14 @@ export const Accordion = (props: AccordionProps) => {
   };
 
   return (
-    <AccordionWrapper elevation={3}>
-      <AccordionHeader onClick={toggleAccordion}>
-        <Typography variant="h6">{props.title}</Typography>
+    <div class="accordion">
+      <AccordionHeader onClick={toggleAccordion} class="accordion-header">
+        {props.title}
         <ExpandIcon isOpen={isOpen()}>
           <ExpandMoreIcon />
         </ExpandIcon>
       </AccordionHeader>
-      {isOpen() && <AccordionContent>{props.children}</AccordionContent>}
-    </AccordionWrapper>
+      {isOpen() && <AccordionContent class="accordion-content">{props.children}</AccordionContent>}
+    </div>
   );
 };

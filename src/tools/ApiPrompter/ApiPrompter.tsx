@@ -17,9 +17,10 @@ import AddIcon from "@suid/icons-material/Add";
 import CloseIcon from "@suid/icons-material/Close";
 import DragIndicatorIcon from "@suid/icons-material/DragIndicator";
 import ContentCopyIcon from "@suid/icons-material/ContentCopy";
-import { Accordion } from "../components/containers/Accordion";
-import { Snackbar } from "../components/toasts/Snackbar";
-import { CodeEditor } from "../components/code/CodeEditor";
+import { Accordion } from "../../components/containers/Accordion";
+import { Snackbar } from "../../components/toasts/Snackbar";
+import { CodeEditor } from "../../components/code/CodeEditor";
+import { styled } from "solid-styled-components";
 
 interface ParamOption {
   value: string;
@@ -39,7 +40,26 @@ interface Prompt {
   callback: string;
 }
 
-export const LLMApiPrompter = () => {
+const Container = styled("div")`
+  width: 100%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 16px;
+
+  .accordion {
+    margin-bottom: 16px;
+  }
+
+  .accordion-header {
+    padding: 16px;
+    font-size: 20px;
+    border-radius: 4px;
+    box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14),
+      0px 1px 3px 0px rgba(0, 0, 0, 0.12);
+  }
+`;
+
+export const ApiPrompter = () => {
   const [prompts, setPrompts] = createStore<Prompt[]>([]);
   const [activePrompt, setActivePrompt] = createSignal(0);
   const [editingPromptId, setEditingPromptId] = createSignal<number | null>(null);
@@ -350,7 +370,7 @@ export const LLMApiPrompter = () => {
     setSnackbarOpen(false);
   };
   return (
-    <Box sx={{ width: "100%", maxWidth: 1200, margin: "auto", p: 2 }}>
+    <Container>
       <Accordion title="Prompts">
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
           <For each={prompts}>
@@ -510,186 +530,181 @@ export const LLMApiPrompter = () => {
             </Paper>
           </Box>
         </Accordion>
-        <Accordion title="Callback" open={true}>
-          <Accordion title="Inputs">
-            <Paper sx={{ flex: 1, p: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Parameters
-              </Typography>
-              <For each={prompts[activePrompt()]?.params}>
-                {(param, paramIndex) => (
-                  <Box sx={{ mb: 2 }}>
-                    <FormControl fullWidth>
-                      {param.type === "array" && (
-                        <Box sx={{ mt: 2 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => addArrayInput(paramIndex())}
-                          >
-                            Add Item
-                          </Button>
-                          <For each={previewValues[paramIndex()] || []}>
-                            {(arrayInput, arrayInputIndex) => (
-                              <Box sx={{ mt: 1, ml: 2 }}>
-                                <TextField
-                                  fullWidth
-                                  defaultValue={arrayInput.value}
-                                  onBlur={(event: any) =>
-                                    updateArrayInputValue(
-                                      paramIndex(),
-                                      arrayInputIndex(),
-                                      event.target.value
-                                    )
-                                  }
-                                  label={`${param.label} - Item ${arrayInputIndex() + 1}`}
-                                />
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  onClick={() => addSubInput(paramIndex(), arrayInputIndex())}
-                                  sx={{ mt: 1 }}
-                                >
-                                  Add Sub-Input
-                                </Button>
-                                <For each={arrayInput.inputs}>
-                                  {(subInput, subInputIndex) => (
-                                    <TextField
-                                      fullWidth
-                                      defaultValue={subInput}
-                                      onBlur={(event: any) =>
-                                        updateSubInputValue(
-                                          paramIndex(),
-                                          arrayInputIndex(),
-                                          subInputIndex(),
-                                          event.target.value
-                                        )
-                                      }
-                                      label={`${param.label} - Sub-Input ${subInputIndex() + 1}`}
-                                      sx={{ mt: 1, ml: 2 }}
-                                    />
-                                  )}
-                                </For>
-                              </Box>
-                            )}
-                          </For>
-                        </Box>
-                      )}
-                      {param.type === "select" && (
-                        <>
-                          <InputLabel>{param.label}</InputLabel>
-                          <Select
-                            value={previewValues[paramIndex()] || ""}
-                            onChange={(e) => updatePreviewValue(paramIndex(), e.target.value)}
-                            label={param.label}
-                          >
-                            <For each={param.options}>
-                              {(option) => <MenuItem value={option.value}>{option.value}</MenuItem>}
-                            </For>
-                          </Select>
-                        </>
-                      )}
-                      {(param.type === "text" || param.type === "number") && (
-                        <TextField
-                          fullWidth
-                          type={param.type}
-                          defaultValue={previewValues[paramIndex()] || ""}
-                          onBlur={(event: any) =>
-                            updatePreviewValue(paramIndex(), event.target.value)
-                          }
-                          label={param.label}
-                        />
-                      )}
-                    </FormControl>
-                  </Box>
-                )}
-              </For>
-            </Paper>
-          </Accordion>
+        <Accordion title="Inputs">
           <Paper sx={{ flex: 1, p: 2 }}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              Available Parameters
-            </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2, alignItems: "center" }}>
-              <For each={getParamInfo()}>
-                {(param) => (
-                  <>
-                    {param.type === "array" ? (
-                      <Box
-                        sx={{
-                          border: "1px solid #ccc",
-                          borderRadius: "20px",
-                          padding: "4px",
-                          display: "flex",
-                          gap: 2,
-                        }}
-                      >
-                        <Chip
-                          label={`${param.name} (${param.type})`}
-                          onClick={() => copyParamName(param.name)}
-                          deleteIcon={<ContentCopyIcon />}
-                          onDelete={() => copyParamName(param.name)}
-                        />
-                        <Chip
-                          label={`value`}
-                          onClick={() => copyParamValue(false)}
-                          deleteIcon={<ContentCopyIcon />}
-                          onDelete={() => copyParamValue(false)}
-                        />
-                        <Chip
-                          label={`inputs`}
-                          onClick={() => copyParamValue(true)}
-                          deleteIcon={<ContentCopyIcon />}
-                          onDelete={() => copyParamValue(true)}
-                        />
+            <For each={prompts[activePrompt()]?.params}>
+              {(param, paramIndex) => (
+                <Box sx={{ mb: 2 }}>
+                  <FormControl fullWidth>
+                    {param.type === "array" && (
+                      <Box sx={{ mt: 2 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => addArrayInput(paramIndex())}
+                        >
+                          Add Item
+                        </Button>
+                        <For each={previewValues[paramIndex()] || []}>
+                          {(arrayInput, arrayInputIndex) => (
+                            <Box sx={{ mt: 1, ml: 2 }}>
+                              <TextField
+                                fullWidth
+                                defaultValue={arrayInput.value}
+                                onBlur={(event: any) =>
+                                  updateArrayInputValue(
+                                    paramIndex(),
+                                    arrayInputIndex(),
+                                    event.target.value
+                                  )
+                                }
+                                label={`${param.label} - Item ${arrayInputIndex() + 1}`}
+                              />
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={() => addSubInput(paramIndex(), arrayInputIndex())}
+                                sx={{ mt: 1 }}
+                              >
+                                Add Sub-Input
+                              </Button>
+                              <For each={arrayInput.inputs}>
+                                {(subInput, subInputIndex) => (
+                                  <TextField
+                                    fullWidth
+                                    defaultValue={subInput}
+                                    onBlur={(event: any) =>
+                                      updateSubInputValue(
+                                        paramIndex(),
+                                        arrayInputIndex(),
+                                        subInputIndex(),
+                                        event.target.value
+                                      )
+                                    }
+                                    label={`${param.label} - Sub-Input ${subInputIndex() + 1}`}
+                                    sx={{ mt: 1, ml: 2 }}
+                                  />
+                                )}
+                              </For>
+                            </Box>
+                          )}
+                        </For>
                       </Box>
-                    ) : (
+                    )}
+                    {param.type === "select" && (
+                      <>
+                        <InputLabel>{param.label}</InputLabel>
+                        <Select
+                          value={previewValues[paramIndex()] || ""}
+                          onChange={(e) => updatePreviewValue(paramIndex(), e.target.value)}
+                          label={param.label}
+                        >
+                          <For each={param.options}>
+                            {(option) => <MenuItem value={option.value}>{option.value}</MenuItem>}
+                          </For>
+                        </Select>
+                      </>
+                    )}
+                    {(param.type === "text" || param.type === "number") && (
+                      <TextField
+                        fullWidth
+                        type={param.type}
+                        defaultValue={previewValues[paramIndex()] || ""}
+                        onBlur={(event: any) =>
+                          updatePreviewValue(paramIndex(), event.target.value)
+                        }
+                        label={param.label}
+                      />
+                    )}
+                  </FormControl>
+                </Box>
+              )}
+            </For>
+          </Paper>
+        </Accordion>
+        <Paper sx={{ flex: 1, p: 2 }}>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            Available Parameters
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2, alignItems: "center" }}>
+            <For each={getParamInfo()}>
+              {(param) => (
+                <>
+                  {param.type === "array" ? (
+                    <Box
+                      sx={{
+                        border: "1px solid #ccc",
+                        borderRadius: "20px",
+                        padding: "4px",
+                        display: "flex",
+                        gap: 2,
+                      }}
+                    >
                       <Chip
                         label={`${param.name} (${param.type})`}
                         onClick={() => copyParamName(param.name)}
                         deleteIcon={<ContentCopyIcon />}
                         onDelete={() => copyParamName(param.name)}
                       />
-                    )}
-                  </>
-                )}
-              </For>
-            </Box>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              Callback Function
-            </Typography>
-            <CodeEditor
-              onChange={(value: any) => updatePromptCallback(prompts[activePrompt()].id, value)}
-              value={prompts[activePrompt()]?.callback || ""}
-            />
-            <Box sx={{ display: "flex", gap: 2, mb: 2, mt: 2 }}>
-              <Button variant="contained" onClick={executeCallback}>
-                Execute Callback
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<ContentCopyIcon />}
-                onClick={() =>
-                  copyToClipboard(
-                    prompts[activePrompt()]?.system || "",
-                    "System prompt copied to clipboard"
-                  )
-                }
-              >
-                Copy System Prompt
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<ContentCopyIcon />}
-                onClick={() =>
-                  copyToClipboard(callbackOutput(), "Callback output copied to clipboard")
-                }
-              >
-                Copy Callback Output
-              </Button>
-            </Box>
-          </Paper>
-        </Accordion>
+                      <Chip
+                        label={`value`}
+                        onClick={() => copyParamValue(false)}
+                        deleteIcon={<ContentCopyIcon />}
+                        onDelete={() => copyParamValue(false)}
+                      />
+                      <Chip
+                        label={`inputs`}
+                        onClick={() => copyParamValue(true)}
+                        deleteIcon={<ContentCopyIcon />}
+                        onDelete={() => copyParamValue(true)}
+                      />
+                    </Box>
+                  ) : (
+                    <Chip
+                      label={`${param.name} (${param.type})`}
+                      onClick={() => copyParamName(param.name)}
+                      deleteIcon={<ContentCopyIcon />}
+                      onDelete={() => copyParamName(param.name)}
+                    />
+                  )}
+                </>
+              )}
+            </For>
+          </Box>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            Callback Function
+          </Typography>
+          <CodeEditor
+            onChange={(value: any) => updatePromptCallback(prompts[activePrompt()].id, value)}
+            value={prompts[activePrompt()]?.callback || ""}
+          />
+          <Box sx={{ display: "flex", gap: 2, mb: 2, mt: 2 }}>
+            <Button variant="contained" onClick={executeCallback}>
+              Execute Callback
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ContentCopyIcon />}
+              onClick={() =>
+                copyToClipboard(
+                  prompts[activePrompt()]?.system || "",
+                  "System prompt copied to clipboard"
+                )
+              }
+            >
+              Copy System Prompt
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ContentCopyIcon />}
+              onClick={() =>
+                copyToClipboard(callbackOutput(), "Callback output copied to clipboard")
+              }
+            >
+              Copy Callback Output
+            </Button>
+          </Box>
+        </Paper>
         <Accordion title="Output">
           <Paper sx={{ flex: 1, p: 2 }}>
             <TextField
@@ -709,6 +724,6 @@ export const LLMApiPrompter = () => {
         onClose={handleSnackbarClose}
         message={snackbarMessage()}
       />
-    </Box>
+    </Container>
   );
 };

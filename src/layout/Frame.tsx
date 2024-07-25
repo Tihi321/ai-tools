@@ -2,10 +2,13 @@ import { styled } from "solid-styled-components";
 import { createSignal, For, Component } from "solid-js";
 import { Drawer, List, ListItemButton, ListItemText, IconButton } from "@suid/material";
 import MenuIcon from "@suid/icons-material/Menu";
+import SettingsIcon from "@suid/icons-material/Settings";
 import CropFreeIcon from "@suid/icons-material/CropFree";
 import replace from "lodash/replace";
 import startCase from "lodash/startCase";
 import { Footer } from "./Footer";
+import { Modal } from "../components/containers/Modal";
+import { Settings } from "./Settings";
 
 const MenuContainer = styled("nav")`
   background-color: ${(props) => props?.theme?.colors.lightBackground};
@@ -67,6 +70,7 @@ interface FrameProps {
 }
 
 export const Frame: Component<FrameProps> = (props) => {
+  const [settingViews, setSettingViews] = createSignal<"" | "chat-settings">("");
   const [isDrawerOpen, setIsDrawerOpen] = createSignal<boolean>(false);
   const [focusMode, setFocusMode] = createSignal<boolean>(false);
   const toggleDrawer = () => setIsDrawerOpen(!isDrawerOpen());
@@ -100,6 +104,15 @@ export const Frame: Component<FrameProps> = (props) => {
           >
             <MenuIcon /> Menu
           </IconButton>
+          <IconButton
+            size="small"
+            color="inherit"
+            aria-label="menu"
+            onClick={() => setSettingViews("chat-settings")}
+            sx={{ display: "flex", gap: "6px" }}
+          >
+            <SettingsIcon /> Options
+          </IconButton>
         </MenuContainer>
       )}
       <FocusContainer>
@@ -114,6 +127,11 @@ export const Frame: Component<FrameProps> = (props) => {
         </IconButton>
       </FocusContainer>
 
+      {settingViews() === "chat-settings" && (
+        <Modal onClose={() => setSettingViews("")}>
+          <Settings />
+        </Modal>
+      )}
       <Content focus={focusMode()}>{props.children}</Content>
       {!focusMode() && (
         <FooterContainer>

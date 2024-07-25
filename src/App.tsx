@@ -3,9 +3,10 @@ import { Box } from "@suid/material";
 import replace from "lodash/replace";
 import startCase from "lodash/startCase";
 import { styled } from "solid-styled-components";
-import { LLMApiPrompter } from "./tools/LLMApiPrompter";
+import { ApiPrompter } from "./tools/ApiPrompter";
 import { getURLParams } from "./utils/url";
-import { Frame } from "./components/layout/Frame";
+import { Frame } from "./layout/Frame";
+import { QuickChat } from "./tools/QuickChats";
 
 const Container = styled("div")`
   display: flex;
@@ -13,17 +14,15 @@ const Container = styled("div")`
   min-height: 100vh;
 `;
 
-const tools: string[] = ["llm-api-prompter"];
+const tools: string[] = ["api-prompter", "quick-chat"];
 
 export const App = () => {
   const [selectedTool, setSelectedTool] = createSignal<string>();
 
   onMount(() => {
     const initialTool = getURLParams("tool");
-    setSelectedTool(initialTool || "llm-api-prompter");
-    document.title = `AI Tools - ${startCase(
-      replace(initialTool || "llm-api-prompter", "-", " ")
-    )}`;
+    setSelectedTool(initialTool || "api-prompter");
+    document.title = `AI Tools - ${startCase(replace(initialTool || "api-prompter", "-", " "))}`;
   });
 
   return (
@@ -36,9 +35,10 @@ export const App = () => {
           setSelectedTool(toolName);
         }}
       >
-        <Box component="main" sx={{ p: 3 }}>
+        <Box component="main">
           <Show when={selectedTool()}>
-            {selectedTool() === "llm-api-prompter" && <LLMApiPrompter />}
+            {selectedTool() === "api-prompter" && <ApiPrompter />}
+            {selectedTool() === "quick-chat" && <QuickChat />}
           </Show>
         </Box>
       </Frame>
