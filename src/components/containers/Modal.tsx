@@ -2,7 +2,6 @@ import { styled } from "solid-styled-components";
 import { IconButton, Modal as MaterialModal } from "@suid/material";
 import Close from "@suid/icons-material/Close";
 const ModalContent = styled.div`
-  padding: 20px;
   border: 1px solid #888;
   border-radius: 5px;
   height: 100%;

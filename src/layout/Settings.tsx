@@ -1,9 +1,17 @@
-import { createSignal, onMount, Show } from "solid-js";
-import { FormControlLabel, Checkbox } from "@suid/material";
+import { createSignal, onMount, Show, For } from "solid-js";
+import { FormControlLabel, Checkbox, Button, TextField, Box } from "@suid/material";
 import { getBooleanValue, getStringValue, saveBooleanValue, saveStringValue } from "../hooks/local";
 import { LocalTextInput } from "../components/inputs/LocalTextInput";
 import { LocalSelectVoice } from "../components/inputs/LocalSelectVoice";
 import { Container } from "../components/containers/Container";
+import { styled } from "solid-styled-components";
+
+const OllamaModelInput = styled(Box)`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+`;
 
 export const Settings = () => {
   const [perplexityApi, setPerplexityApi] = createSignal("");
@@ -11,6 +19,8 @@ export const Settings = () => {
   const [ollamaURL, setOllamaUrl] = createSignal("");
   const [autoStartVoice, setAutoStartVoice] = createSignal(false);
   const [mounted, setMounted] = createSignal(false);
+  const [ollamaModels, setOllamaModels] = createSignal<string[]>([]);
+  const [newOllamaModel, setNewOllamaModel] = createSignal("");
 
   onMount(() => {
     const perplexityApi = getStringValue("ai-tools/perplexityApi");
@@ -21,8 +31,26 @@ export const Settings = () => {
     setOllamaUrl(ollamaUrl || "http://127.0.0.1:11434");
     const autoStartVoice = getBooleanValue("ai-tools/autostartvoice");
     setAutoStartVoice(autoStartVoice);
+    const savedOllamaModels = JSON.parse(getStringValue("ai-tools/ollamaModels") || "[]");
+    setOllamaModels(savedOllamaModels);
     setMounted(true);
   });
+
+  const addOllamaModel = () => {
+    if (newOllamaModel()) {
+      const updatedModels = [...ollamaModels(), newOllamaModel()];
+      setOllamaModels(updatedModels);
+      saveStringValue("ai-tools/ollamaModels", JSON.stringify(updatedModels));
+      setNewOllamaModel("");
+    }
+  };
+
+  const removeOllamaModel = (model: string) => {
+    const updatedModels = ollamaModels().filter((m) => m !== model);
+    setOllamaModels(updatedModels);
+    saveStringValue("ai-tools/ollamaModels", JSON.stringify(updatedModels));
+  };
+
   return (
     <Container>
       <Show when={mounted()}>
@@ -65,6 +93,25 @@ export const Settings = () => {
             saveStringValue("ai-tools/ollamaURL", "");
           }}
         />
+        <Box>
+          <h3>Ollama Models</h3>
+          <For each={ollamaModels()}>
+            {(model) => (
+              <OllamaModelInput>
+                <TextField value={model} disabled />
+                <Button onClick={() => removeOllamaModel(model)}>Remove</Button>
+              </OllamaModelInput>
+            )}
+          </For>
+          <OllamaModelInput>
+            <TextField
+              value={newOllamaModel()}
+              onChange={(e) => setNewOllamaModel(e.target.value)}
+              placeholder="Enter new Ollama model"
+            />
+            <Button onClick={addOllamaModel}>Add Model</Button>
+          </OllamaModelInput>
+        </Box>
         <LocalSelectVoice />
         <FormControlLabel
           control={

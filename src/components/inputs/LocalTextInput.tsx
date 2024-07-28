@@ -33,8 +33,8 @@ export const LocalTextInput: Component<LocalTextInputProps> = ({
         alignItems: "center",
         flexDirection: "row",
         gap: 2,
-        flex: 1,
       }}
+      class="local-text-input"
     >
       <TextField
         fullWidth

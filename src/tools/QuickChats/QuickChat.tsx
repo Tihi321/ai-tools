@@ -1,13 +1,15 @@
 import { styled } from "solid-styled-components";
-import { createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { IconButton, Typography, TextField, Box } from "@suid/material";
 import ChevronLeftIcon from "@suid/icons-material/ChevronLeft";
 import ChevronRightIcon from "@suid/icons-material/ChevronRight";
-
 import SendIcon from "@suid/icons-material/Send";
+import EditIcon from "@suid/icons-material/Edit";
+import DeleteIcon from "@suid/icons-material/Delete";
 import { Modal } from "../../components/containers/Modal";
 import { NewChat } from "./NewChat";
 import { Accordion } from "../../components/containers/Accordion";
+import { getStringValue, saveStringValue } from "../../hooks/local";
 
 const Container = styled("div")`
   position: fixed;
@@ -32,6 +34,7 @@ const Content = styled("div")`
   display: flex;
   flex-direction: column;
   flex: 1;
+  transition: padding-left 0.3s ease-out;
 `;
 
 const Sidebar = styled("div")`
@@ -41,6 +44,8 @@ const Sidebar = styled("div")`
   left: 0;
   bottom: 0;
   background-color: #21201c;
+  transition: width 0.3s ease-out;
+  overflow: hidden;
 `;
 
 const SidebarContent = styled("div")`
@@ -50,6 +55,7 @@ const SidebarContent = styled("div")`
   padding: 16px;
   gap: 8px;
   color: #f5f4ef;
+  width: 250px;
 
   .accordion {
     font-size: 16px;
@@ -67,19 +73,19 @@ const SidebarContent = styled("div")`
 const ToggleSidebar = styled("button")`
   position: absolute;
   top: 54px;
-  right: 0;
+  left: 250px; /* Aligns with the edge of the expanded sidebar */
   background-color: #21201c;
   color: #f5f4ef;
   border: none;
-  padding: 4px 8px;
+  padding: 8px;
   cursor: pointer;
   z-index: 10;
-  border-radius: 0 8px 0 0;
+  border-radius: 0 8px 8px 0;
   font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translateX(100%);
+  transition: left 0.3s ease-out;
 `;
 
 const SidebarButton = styled("button")`
@@ -137,110 +143,176 @@ const InputArea = styled("div")`
   }
 `;
 
-const exampleChatList: {
-  title: string;
-  id: string;
-  chats: Array<{
-    title: string;
-    id: string;
-    parent: string;
-  }>;
-}[] = [
-  {
-    title: "Expert",
-    id: "ollama-expert",
-    chats: [
-      {
-        title: "What is symptom of",
-        id: "ollama-expert-chat-1",
-        parent: "ollama-expert",
-      },
-      {
-        title: "How can we treat",
-        id: "ollama-expert-chat-2",
-        parent: "ollama-expert",
-      },
-    ],
-  },
-  {
-    title: "Doctor",
-    id: "perplexity-doctor",
-    chats: [
-      {
-        title: "What is symptom of",
-        id: "perplexity-doctor-chat-1",
-        parent: "perplexity-doctor",
-      },
-      {
-        title: "How can we treat",
-        id: "perplexity-doctor-chat-2",
-        parent: "perplexity-doctor",
-      },
-    ],
-  },
-  {
-    title: "Assistant",
-    id: "openai-assistant",
-    chats: [
-      {
-        title: "What is biggest tower",
-        id: "openai-assistant-chat-1",
-        parent: "openai-assistant",
-      },
-      {
-        title: "What can you tell me about",
-        id: "openai-assistant-chat-2",
-        parent: "openai-assistant",
-      },
-    ],
-  },
-];
+const ActionButton = styled(IconButton)`
+  color: #f5f4ef;
+  padding: 4px;
+  &:hover {
+    background-color: rgba(245, 244, 239, 0.1);
+  }
+`;
 
-const sidebarWidth = "250px";
+interface ChatType {
+  id: string;
+  title: string;
+  systemPrompt: string;
+  modelType: string;
+  model: string;
+}
+
+interface Chat {
+  id: string;
+  title: string;
+  parentId: string;
+}
 
 export const QuickChat = () => {
-  const [settingViews, setSettingViews] = createSignal<"" | "new-chat">("");
+  const [settingViews, setSettingViews] = createSignal<"" | "new-chat" | "edit-chat">("");
   const [showChats, setShowChats] = createSignal(true);
   const [messages, setMessages] = createSignal<{ text: string; sender: string }[]>([]);
   const [inputValue, setInputValue] = createSignal<string>("");
+  const [chatPersonas, setChatPersonas] = createSignal<ChatType[]>([]);
+  const [chats, setChats] = createSignal<Chat[]>([]);
+  const [activeChatType, setActiveChatType] = createSignal<ChatType | null>(null);
+  const [activeChat, setActiveChat] = createSignal<Chat | null>(null);
+  const [editingPersona, setEditingPersona] = createSignal<ChatType | undefined>(undefined);
+
+  createEffect(() => {
+    const savedChatPersonas = JSON.parse(getStringValue("ai-tools/chatPersonas") || "[]");
+    setChatPersonas(savedChatPersonas);
+    const savedChats = JSON.parse(getStringValue("ai-tools/chats") || "[]");
+    setChats(savedChats);
+  });
 
   const handleSendMessage = () => {
-    if (inputValue().trim()) {
-      setMessages([...messages(), { text: inputValue(), sender: "user" }]);
+    if (inputValue().trim() && activeChatType()) {
+      // Here you would typically send the message to your LLM API
+      // along with the system prompt and model information
+      const newMessage = { text: inputValue(), sender: "user" };
+      setMessages([...messages(), newMessage]);
+
+      // Simulating an AI response
+      setTimeout(() => {
+        const aiResponse = {
+          text: `AI response using ${activeChatType()?.model} model`,
+          sender: "ai",
+        };
+        setMessages([...messages(), aiResponse]);
+      }, 1000);
+
       setInputValue("");
     }
   };
 
+  const addNewChat = (parentId: string) => {
+    const newChat: Chat = {
+      id: Date.now().toString(),
+      title: `New Chat ${chats().length + 1}`,
+      parentId: parentId,
+    };
+    const updatedChats = [...chats(), newChat];
+    setChats(updatedChats);
+    setActiveChat(newChat);
+    const parentChatType = chatPersonas().find((persona) => persona.id === parentId);
+    if (parentChatType) {
+      setActiveChatType(parentChatType);
+    }
+    // Save to local storage
+    saveStringValue("ai-tools/chats", JSON.stringify(updatedChats));
+  };
+
+  const removePersona = (personaId: string) => {
+    const updatedPersonas = chatPersonas().filter((persona) => persona.id !== personaId);
+    setChatPersonas(updatedPersonas);
+    saveStringValue("ai-tools/chatPersonas", JSON.stringify(updatedPersonas));
+
+    // Remove all chats associated with this persona
+    const updatedChats = chats().filter((chat) => chat.parentId !== personaId);
+    setChats(updatedChats);
+    saveStringValue("ai-tools/chats", JSON.stringify(updatedChats));
+
+    if (activeChatType()?.id === personaId) {
+      setActiveChatType(null);
+      setActiveChat(null);
+    }
+  };
+
+  const removeChat = (chatId: string) => {
+    const updatedChats = chats().filter((chat) => chat.id !== chatId);
+    setChats(updatedChats);
+    saveStringValue("ai-tools/chats", JSON.stringify(updatedChats));
+
+    if (activeChat()?.id === chatId) {
+      setActiveChat(null);
+    }
+  };
+
+  const editPersona = (persona: ChatType) => {
+    setEditingPersona(persona);
+    setSettingViews("edit-chat");
+  };
+
+  const handleEditPersona = (updatedPersona: ChatType) => {
+    const updatedPersonas = chatPersonas().map((p) =>
+      p.id === updatedPersona.id ? updatedPersona : p
+    );
+    setChatPersonas(updatedPersonas);
+    saveStringValue("ai-tools/chatPersonas", JSON.stringify(updatedPersonas));
+    setSettingViews("");
+    setEditingPersona(undefined);
+  };
+
   return (
     <Container>
-      <Content
-        style={{
-          "padding-left": showChats() ? sidebarWidth : "0px",
-        }}
-      >
-        <Sidebar
-          style={{
-            width: showChats() ? sidebarWidth : "0px",
-          }}
-        >
+      <Content style={{ "padding-left": showChats() ? "250px" : "0px" }}>
+        <Sidebar style={{ width: showChats() ? "250px" : "0px" }}>
           <Show when={showChats()}>
             <SidebarContent>
-              <SidebarButton onClick={() => setSettingViews("new-chat")}>New Type</SidebarButton>
-              <For each={exampleChatList}>
-                {(chat) => (
-                  <Accordion title={chat.title}>
-                    <SidebarButton onClick={() => setSettingViews("new-chat")}>
-                      New Chat
-                    </SidebarButton>
-                    <For each={chat.chats}>
+              <SidebarButton onClick={() => setSettingViews("new-chat")}>New Persona</SidebarButton>
+              <For each={chatPersonas()}>
+                {(chatType) => (
+                  <Accordion title={chatType.title}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mb: 1,
+                      }}
+                    >
+                      <SidebarButton onClick={() => addNewChat(chatType.id)}>
+                        New Chat
+                      </SidebarButton>
+                      <Box>
+                        <ActionButton onClick={() => editPersona(chatType)}>
+                          <EditIcon fontSize="small" />
+                        </ActionButton>
+                        <ActionButton onClick={() => removePersona(chatType.id)}>
+                          <DeleteIcon fontSize="small" />
+                        </ActionButton>
+                      </Box>
+                    </Box>
+                    <For each={chats().filter((chat) => chat.parentId === chatType.id)}>
                       {(chat) => (
-                        <SidebarLink
-                          onClick={() => {
-                            console.log("chat", chat);
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            mb: 1,
                           }}
                         >
-                          {chat.title}
-                        </SidebarLink>
+                          <SidebarLink
+                            onClick={() => {
+                              setActiveChat(chat);
+                              setActiveChatType(chatType);
+                            }}
+                          >
+                            {chat.title}
+                          </SidebarLink>
+                          <ActionButton onClick={() => removeChat(chat.id)}>
+                            <DeleteIcon fontSize="small" />
+                          </ActionButton>
+                        </Box>
                       )}
                     </For>
                   </Accordion>
@@ -248,15 +320,18 @@ export const QuickChat = () => {
               </For>
             </SidebarContent>
           </Show>
-          <ToggleSidebar onClick={() => setShowChats(!showChats())}>
-            {showChats() ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </ToggleSidebar>
         </Sidebar>
+        <ToggleSidebar
+          onClick={() => setShowChats(!showChats())}
+          style={{ left: showChats() ? "250px" : "0px" }}
+        >
+          {showChats() ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        </ToggleSidebar>
         <ChatArea>
           <For each={messages()}>
-            {(message: { sender: string; text: string }) => (
-              <Box sx={{ mb: 2, textAlign: message?.sender === "user" ? "right" : "left" }}>
-                <Typography>{message?.text}</Typography>
+            {(message) => (
+              <Box sx={{ mb: 2, textAlign: message.sender === "user" ? "right" : "left" }}>
+                <Typography>{message.text}</Typography>
               </Box>
             )}
           </For>
@@ -281,7 +356,27 @@ export const QuickChat = () => {
       </Content>
       {settingViews() === "new-chat" && (
         <Modal onClose={() => setSettingViews("")}>
-          <NewChat />
+          <NewChat
+            onClose={() => {
+              const savedChatPersonas = JSON.parse(getStringValue("ai-tools/chatPersonas") || "[]");
+              setChatPersonas(savedChatPersonas);
+              setSettingViews("");
+            }}
+          />
+        </Modal>
+      )}
+      {settingViews() === "edit-chat" && editingPersona() && (
+        <Modal onClose={() => setSettingViews("")}>
+          <NewChat
+            editMode={true}
+            initialData={editingPersona()}
+            onClose={(updatedPersona: any) => {
+              if (updatedPersona) {
+                handleEditPersona(updatedPersona);
+              }
+              setSettingViews("");
+            }}
+          />
         </Modal>
       )}
     </Container>
