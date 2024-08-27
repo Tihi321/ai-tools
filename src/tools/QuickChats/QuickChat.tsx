@@ -163,6 +163,7 @@ interface Chat {
   id: string;
   title: string;
   parentId: string;
+  messages?: { text: string; sender: string }[];
 }
 
 export const QuickChat = () => {
@@ -183,23 +184,75 @@ export const QuickChat = () => {
     setChats(savedChats);
   });
 
-  const handleSendMessage = () => {
-    if (inputValue().trim() && activeChatType()) {
-      // Here you would typically send the message to your LLM API
-      // along with the system prompt and model information
+  const saveChatHistory = (chatId: string, messages: { text: string; sender: string }[]) => {
+    const updatedChats = chats().map((chat) => (chat.id === chatId ? { ...chat, messages } : chat));
+    setChats(updatedChats);
+    saveStringValue("ai-tools/chats", JSON.stringify(updatedChats));
+  };
+
+  const sendToOllama = async (prompt: string, systemPrompt: string, history: string) => {
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: activeChatType()?.model,
+        prompt: `${systemPrompt}\n\nChat History:\n${history}\n\nHuman: ${prompt}\nAI:`,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to get response from Ollama");
+    }
+
+    const reader = response.body?.getReader();
+    let fullResponse = "";
+
+    while (true) {
+      const result = await reader?.read();
+      if (result?.done) break;
+
+      const chunk = new TextDecoder().decode(result?.value);
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        if (line.trim() !== "") {
+          const parsedChunk = JSON.parse(line);
+          fullResponse += parsedChunk.response;
+        }
+      }
+    }
+
+    console.log("Ollama response:", fullResponse);
+
+    return fullResponse;
+  };
+
+  const handleSendMessage = async () => {
+    if (inputValue().trim() && activeChatType() && activeChat()) {
       const newMessage = { text: inputValue(), sender: "user" };
-      setMessages([...messages(), newMessage]);
-
-      // Simulating an AI response
-      setTimeout(() => {
-        const aiResponse = {
-          text: `AI response using ${activeChatType()?.model} model`,
-          sender: "ai",
-        };
-        setMessages([...messages(), aiResponse]);
-      }, 1000);
-
+      const updatedMessages = [...messages(), newMessage];
+      setMessages(updatedMessages);
       setInputValue("");
+
+      const chatHistory = updatedMessages.map((m) => `${m.sender}: ${m.text}`).join("\n");
+
+      try {
+        const aiResponse = await sendToOllama(
+          inputValue(),
+          activeChatType()?.systemPrompt || "",
+          chatHistory
+        );
+
+        const aiMessage = { text: aiResponse, sender: "ai" };
+        const finalMessages = [...updatedMessages, aiMessage];
+        setMessages(finalMessages);
+        saveChatHistory(activeChat()?.id as string, finalMessages);
+      } catch (error) {
+        console.error("Error getting AI response:", error);
+        // Handle error (e.g., show error message to user)
+      }
     }
   };
 
@@ -261,6 +314,15 @@ export const QuickChat = () => {
     setEditingPersona(undefined);
   };
 
+  const loadChatHistory = (chatId: string) => {
+    const chat = chats().find((c) => c.id === chatId);
+    if (chat && chat.messages) {
+      setMessages(chat.messages);
+    } else {
+      setMessages([]);
+    }
+  };
+
   return (
     <Container>
       <Content style={{ "padding-left": showChats() ? "250px" : "0px" }}>
@@ -305,6 +367,7 @@ export const QuickChat = () => {
                             onClick={() => {
                               setActiveChat(chat);
                               setActiveChatType(chatType);
+                              loadChatHistory(chat.id);
                             }}
                           >
                             {chat.title}
