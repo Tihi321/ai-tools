@@ -65,6 +65,8 @@ class ApiService {
         };
         headers["x-api-key"] = apiKey!;
         headers["anthropic-version"] = "2023-06-01";
+        headers["content-type"] = "application/json";
+        headers["anthropic-dangerous-direct-browser-access"] = "true";
         break;
     }
 
