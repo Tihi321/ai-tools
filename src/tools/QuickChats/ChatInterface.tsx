@@ -10,7 +10,7 @@ export const ChatInterface = () => {
   const [messages, setMessages] = createSignal<Message[]>([]);
   const [currentAgent, setCurrentAgent] = createSignal<Agent | null>(null);
   const [apiKeys, setApiKeys] = createSignal<Record<string, string>>({});
-  const [corsWarning, setCorsWarning] = createSignal(false);
+  const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
 
   createEffect(() => {
     const storedMessages = localStorage.getItem("chatMessages");
@@ -26,7 +26,7 @@ export const ChatInterface = () => {
 
   const sendMessage = async (message: string) => {
     if (!currentAgent()) {
-      alert("Please select an agent first");
+      setErrorMessage("Please select an agent first");
       return;
     }
 
@@ -38,7 +38,7 @@ export const ChatInterface = () => {
     try {
       const response = await apiService.sendMessage(
         currentAgent()!,
-        message,
+        messages(),
         currentAgent()!.llmType,
         apiKeys()[currentAgent()!.llmType]
       );
@@ -46,12 +46,13 @@ export const ChatInterface = () => {
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
       localStorage.setItem("chatMessages", JSON.stringify(finalMessages));
+      setErrorMessage(null);
     } catch (error: unknown) {
       console.error("Error sending message:", error);
-      if (error instanceof Error && error.message.includes("CORS")) {
-        setCorsWarning(true);
+      if (error instanceof Error) {
+        setErrorMessage(`Failed to send message: ${error.message}`);
       } else {
-        alert("Failed to send message. Please check your API configuration and try again.");
+        setErrorMessage("An unknown error occurred while sending the message");
       }
     }
   };
@@ -60,6 +61,7 @@ export const ChatInterface = () => {
     setCurrentAgent(agent);
     setMessages([]);
     localStorage.removeItem("chatMessages");
+    setErrorMessage(null);
   };
 
   const handleApiKeyChange = (llmType: string, apiKey: string) => {
@@ -105,21 +107,17 @@ export const ChatInterface = () => {
             </label>
           </div>
         </div>
-        <Show when={corsWarning()}>
+        <Show when={errorMessage()}>
           <div
             style={{
-              "background-color": "#fff3cd",
-              color: "#856404",
+              "background-color": "#f8d7da",
+              color: "#721c24",
               padding: "10px",
               "border-radius": "5px",
               "margin-bottom": "10px",
             }}
           >
-            <p>
-              CORS Error: For testing purposes, please use a CORS browser extension to bypass this
-              issue.
-            </p>
-            <p>In a production environment, this should be handled by a backend proxy.</p>
+            <p>{errorMessage()}</p>
           </div>
         </Show>
         <Show when={currentAgent()}>

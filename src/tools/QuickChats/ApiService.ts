@@ -24,7 +24,7 @@ class ApiService {
 
   async sendMessage(
     agent: Agent,
-    message: string,
+    chatHistory: Message[],
     apiType: "ollama" | "openRouter" | "anthropic",
     apiKey?: string
   ): Promise<string> {
@@ -33,34 +33,32 @@ class ApiService {
       throw new Error(`Unsupported API type: ${apiType}`);
     }
 
-    const messages: Message[] = [
-      { role: "system", content: agent.systemPrompt },
-      { role: "user", content: message },
-    ];
-
     let body: any;
     let headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
+    const fullHistory = [{ role: "system", content: agent.systemPrompt }, ...chatHistory];
+
     switch (apiType) {
       case "ollama":
         body = {
           model: "llama2",
-          messages,
+          messages: fullHistory,
         };
         break;
       case "openRouter":
         body = {
           model: "openai/gpt-3.5-turbo",
-          messages,
+          messages: fullHistory,
         };
         headers["Authorization"] = `Bearer ${apiKey}`;
         break;
       case "anthropic":
         body = {
           model: "claude-3-sonnet-20240229",
-          messages,
+          messages: fullHistory.filter((msg) => msg.role !== "system"),
+          system: agent.systemPrompt,
           max_tokens: 1024,
         };
         headers["x-api-key"] = apiKey!;
@@ -78,7 +76,8 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(`API request failed: ${response.statusText}\n${JSON.stringify(errorData)}`);
       }
 
       const data = await response.json();
