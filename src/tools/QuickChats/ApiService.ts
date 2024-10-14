@@ -22,12 +22,8 @@ class ApiService {
     anthropic: { endpoint: "https://api.anthropic.com/v1/messages" },
   };
 
-  async sendMessage(
-    agent: Agent,
-    chatHistory: Message[],
-    apiType: "ollama" | "openRouter" | "anthropic",
-    apiKey?: string
-  ): Promise<string> {
+  async sendMessage(agent: Agent, chatHistory: Message[], apiKey?: string): Promise<string> {
+    const apiType = agent.llmType;
     const config = this.config[apiType];
     if (!config) {
       throw new Error(`Unsupported API type: ${apiType}`);

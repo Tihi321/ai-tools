@@ -13,16 +13,24 @@ export const ChatInterface = () => {
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
 
   createEffect(() => {
-    const storedMessages = localStorage.getItem("chatMessages");
-    if (storedMessages) {
-      setMessages(JSON.parse(storedMessages));
-    }
-
     const storedApiKeys = localStorage.getItem("apiKeys");
     if (storedApiKeys) {
       setApiKeys(JSON.parse(storedApiKeys));
     }
   });
+
+  const loadAgentMessages = (agentId: string) => {
+    const storedMessages = localStorage.getItem(`chatMessages_${agentId}`);
+    if (storedMessages) {
+      setMessages(JSON.parse(storedMessages));
+    } else {
+      setMessages([]);
+    }
+  };
+
+  const saveAgentMessages = (agentId: string, messages: Message[]) => {
+    localStorage.setItem(`chatMessages_${agentId}`, JSON.stringify(messages));
+  };
 
   const sendMessage = async (message: string) => {
     if (!currentAgent()) {
@@ -33,19 +41,18 @@ export const ChatInterface = () => {
     const newMessage: Message = { role: "user", content: message };
     const updatedMessages = [...messages(), newMessage];
     setMessages(updatedMessages);
-    localStorage.setItem("chatMessages", JSON.stringify(updatedMessages));
+    saveAgentMessages(currentAgent()!.id, updatedMessages);
 
     try {
       const response = await apiService.sendMessage(
         currentAgent()!,
         messages(),
-        currentAgent()!.llmType,
         apiKeys()[currentAgent()!.llmType]
       );
       const assistantMessage: Message = { role: "assistant", content: response };
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
-      localStorage.setItem("chatMessages", JSON.stringify(finalMessages));
+      saveAgentMessages(currentAgent()!.id, finalMessages);
       setErrorMessage(null);
     } catch (error: unknown) {
       console.error("Error sending message:", error);
@@ -59,8 +66,7 @@ export const ChatInterface = () => {
 
   const handleSelectAgent = (agent: Agent) => {
     setCurrentAgent(agent);
-    setMessages([]);
-    localStorage.removeItem("chatMessages");
+    loadAgentMessages(agent.id);
     setErrorMessage(null);
   };
 
